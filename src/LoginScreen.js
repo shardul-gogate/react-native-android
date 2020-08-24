@@ -1,8 +1,12 @@
 import React, {Component} from 'react';
 import {View, StyleSheet, Text} from 'react-native';
 import {Button, TextInput} from 'react-native-paper';
-import auth from '@react-native-firebase/auth';
+import axios from 'axios';
 import {ActivityIndicator} from 'react-native-paper';
+import {openDatabase} from 'react-native-sqlite-storage';
+import {connect} from 'react-redux';
+
+var db = openDatabase({name: 'userDatabase.db'});
 
 class LoginScreen extends Component {
   state = {
@@ -10,6 +14,93 @@ class LoginScreen extends Component {
     localPassword: '',
     animating: false,
   };
+
+  validateUser = () => {
+    axios
+      .get('https://api.npoint.io/ee2990b790b87e18fcdb/users')
+      .then((response) => {
+        let users = response.data;
+        let loginFlag = 0;
+
+        //login via db
+        db.transaction((txn) => {
+          txn.executeSql('SELECT * FROM user', [], (txn, res) => {
+            for (let i = 0; i < res.rows.length; i++) {
+              let user = res.rows.item(i);
+              if (
+                this.state.localUsername === user.email &&
+                this.state.localPassword === user.password
+              ) {
+                loginFlag = 1;
+                this.props.update({
+                  username: user.username,
+                  email: user.email,
+                  phone: user.phone,
+                });
+                this.setState({...this.state, animating: false});
+                this.props.navigation.reset({
+                  index: 0,
+                  routes: [{name: 'WelcomeScreen'}],
+                });
+              }
+              if (loginFlag === 0) {
+                this.setState({...this.state, animating: false});
+                alert(
+                  'Uername and password did not match any existing records',
+                );
+              }
+            }
+          });
+          return;
+        });
+
+        //login via axios
+        for (let i = 0; i < users.length; i++) {
+          let user = users[i];
+          if (
+            this.state.localUsername === user.email &&
+            this.state.localPassword === user.password
+          ) {
+            loginFlag = 1;
+            db.transaction((txn) => {
+              txn.executeSql('DROP TABLE IF EXISTS user', [], (txn, res) => {
+                console.log(res);
+              });
+              txn.executeSql(
+                'CREATE TABLE IF NOT EXISTS user(email varchar(50) PRIMARY KEY, name varchar(50) NOT NULL, password varchar(50) NOT NULL, phone varchar(10) NOT NULL) ',
+                [],
+                (txn, res) => {
+                  console.log(res);
+                },
+              );
+              txn.executeSql(
+                'INSERT INTO users (email, name, password, phone) VALUES (?, ?, ?, ?)',
+                [user.email, user.username, user.password, user.phone],
+                (txn, res) => {
+                  console.log(res.rowsAffected);
+                },
+              );
+            });
+            this.props.update({
+              username: user.username,
+              email: user.email,
+              phone: user.phone,
+            });
+            this.setState({...this.state, animating: false});
+            this.props.navigation.reset({
+              index: 0,
+              routes: [{name: 'WelcomeScreen'}],
+            });
+          }
+        }
+        if (loginFlag === 0) {
+          this.setState({...this.state, animating: false});
+          alert('Uername and password did not match any existing records');
+        }
+      })
+      .catch((error) => console.log(error));
+  };
+
   render() {
     return (
       <View style={styles.mainContainer}>
@@ -44,26 +135,14 @@ class LoginScreen extends Component {
               this.setState({...this.state, animating: false});
               return;
             }
-            auth()
-              .signInWithEmailAndPassword(
-                this.state.localUsername,
-                this.state.localPassword,
-              )
-              .then(() => {
-                this.setState({...this.state, animating: false});
-                this.props.navigation.reset({
-                  index: 0,
-                  routes: [{name: 'WelcomeScreen'}],
-                });
-              })
-              .catch(() => this.setState({...this.state, animating: false}));
+            this.validateUser();
           }}>
           Login
         </Button>
 
         <Button
           onPress={() => {
-            this.props.navigation.navigate('RegisterScreen');
+            alert('under construction');
           }}
           color="#fbc02d"
           labelStyle={styles.registerText}
@@ -112,4 +191,18 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+const mapStateToProps = (state) => {
+  return {
+    username: state.reducer.username,
+    email: state.reducer.email,
+    phone: state.reducer.phone,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    update: (data) => dispatch({type: 'UPDATE_USER', data: data}),
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(LoginScreen);

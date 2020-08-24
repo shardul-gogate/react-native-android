@@ -16,7 +16,7 @@ import IOSInfoScreen from './src/IosInfoScreen';
 import SystemInfoScreen from './src/SystemInfoScreen';
 import RegisterUserScreen from './src/RegisterUserScreen';
 import store from './src/ReduxStore';
-import auth from '@react-native-firebase/auth';
+import axios from 'axios';
 
 const BottomTabNav = createBottomTabNavigator();
 const StackNav = createStackNavigator();
@@ -134,11 +134,7 @@ export default class App extends Component {
     return (
       <Provider store={store}>
         <StatusBar barStyle="light-content" backgroundColor="black" />
-        <NavigationContainer>
-          {auth().currentUser === null
-            ? this.createLoginStackNav()
-            : this.createMainTabNav()}
-        </NavigationContainer>
+        <NavigationContainer>{this.createLoginStackNav()}</NavigationContainer>
       </Provider>
     );
   }

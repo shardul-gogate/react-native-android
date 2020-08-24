@@ -1,35 +1,12 @@
 import React, {Component} from 'react';
 import {Text, StyleSheet, View} from 'react-native';
 import {Button} from 'react-native-paper';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
 import {connect} from 'react-redux';
 
 class WelcomeScreen extends Component {
-  state = {
-    username: '',
-    email: '',
-    phone: '',
-  };
-  setUserData = () => {
-    firestore()
-      .collection('users')
-      .doc(auth().currentUser.uid)
-      .get()
-      .then((documentSnapshot) => {
-        this.setState({
-          username: documentSnapshot.get('username'),
-          email: auth().currentUser.email,
-          phone: documentSnapshot.get('phone'),
-        });
-        this.props.update(this.state);
-      })
-      .catch((error) => console.log(error));
-  };
   render() {
     return (
       <View style={styles.mainContainer}>
-        {this.setUserData()}
         <Text style={styles.textView}>Hello and Welcome to React Native</Text>
         <Button
           color="#fbc02d"
@@ -37,15 +14,10 @@ class WelcomeScreen extends Component {
           mode="contained"
           style={styles.logoutButton}
           onPress={() => {
-            auth()
-              .signOut()
-              .then(() => {
-                this.props.navigation.reset({
-                  index: 0,
-                  routes: [{name: 'LoginScreen'}],
-                });
-              })
-              .catch();
+            this.props.navigation.reset({
+              index: 0,
+              routes: [{name: 'LoginScreen'}],
+            });
           }}>
           Logout
         </Button>

@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import {ActivityIndicator} from 'react-native-paper';
+import {openDatabase} from 'react-native-sqlite-storage';
 import {
   View,
   Text,
@@ -7,10 +8,9 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-
 import {connect} from 'react-redux';
+
+var db = openDatabase({name: 'userDatabase.db'});
 
 class EditInfoScreen extends Component {
   state = {
@@ -25,6 +25,7 @@ class EditInfoScreen extends Component {
       username: this.props.username,
       email: this.props.email,
       phone: this.props.phone,
+      animating: false,
     });
   };
 
@@ -53,20 +54,18 @@ class EditInfoScreen extends Component {
                 this.setState({...this.state, animating: false});
                 return;
               }
-              firestore()
-                .collection('users')
-                .doc(auth().currentUser.uid)
-                .update({
-                  username: this.state.username,
-                  phone: this.state.phone,
-                })
-                .then(() => {
-                  this.setState({...this.state, animating: false});
-                  alert('User updated');
-                  this.props.navigation.navigate('ViewInfoScreen');
-                })
-                .catch((error) => console.log(error));
+              db.transaction((txn) => {
+                txn.executeSql(
+                  'UPDATE user SET name=?, phone=? where email=?',
+                  [this.state.username, this.state.phone, this.state.email],
+                  (txn, res) => {
+                    console.log(res.rowsAffected);
+                  },
+                );
+              });
               this.props.update(this.state);
+              this.setState({...this.state, animating: false});
+              this.props.navigation.navigate('ViewInfoScreen');
             }}>
             <Text style={styles.saveButton}>SAVE</Text>
           </TouchableOpacity>

@@ -1,9 +1,6 @@
 import React, {Component} from 'react';
 import {StyleSheet, View} from 'react-native';
-import {Button, TextInput} from 'react-native-paper';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-import {ActivityIndicator} from 'react-native-paper';
+import {Button, TextInput, ActivityIndicator} from 'react-native-paper';
 
 class RegisterUserScreen extends Component {
   state = {
@@ -26,14 +23,12 @@ class RegisterUserScreen extends Component {
         />
         <TextInput
           secureTextEntry={true}
-          autoCapitalize={false}
           mode="flat"
           onChangeText={(password) => this.setState({...this.state, password})}
           label="Password"
           style={styles.passwordInput}
         />
         <TextInput
-          autoCapitalize={false}
           label="Confirm Password"
           mode="flat"
           onChangeText={(confirmPassword) =>
